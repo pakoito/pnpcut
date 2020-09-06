@@ -1,4 +1,4 @@
-Apache 2 License [Check LICENSE]
+[Apache 2 License](./LICENSE)
 
 # PnPCut
 

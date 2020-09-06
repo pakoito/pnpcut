@@ -1,0 +1,17 @@
+{
+  "name": "pnpcut",
+  "version": "1.0.0",
+  "description": "Cuts and rearranges images for PnP",
+  "main": "index.js",
+  "author": "pakoito",
+  "license": "Apache",
+  "private": false,
+  "dependencies": {
+    "image-size": "^0.9.1",
+    "jimp": "^0.16.1",
+    "parse-numeric-range": "^1.2.0"
+  },
+  "devDependencies": {
+    "prettier": "2.1.1"
+  }
+}

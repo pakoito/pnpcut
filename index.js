@@ -77,12 +77,9 @@ function chunk(array, size) {
 }
 
 async function layoutCards(resizes, outpath) {
-  resizes.sort(function (a, b) {
-    return a.localeCompare(b, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-  });
+  resizes.sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+  );
   const chunked = chunk(resizes, 9);
   return await Promise.all(
     chunked.map(async (chunk, idx) => {
@@ -152,7 +149,7 @@ async function withCrop() {
   return [crops, outpath];
 }
 
-async function noCrop() {
+async function withFolder() {
   const outpath = process.argv[2];
   const infolder = process.argv[3];
   const route = path.resolve(process.cwd(), infolder);
@@ -167,7 +164,7 @@ async function start() {
   if (process.argv[2] === "crop") {
     [crops, outpath] = await withCrop();
   } else {
-    [crops, outpath] = await noCrop();
+    [crops, outpath] = await withFolder();
   }
   const resizes = await resize(crops, outpath);
   const cards = await layoutCards(resizes, outpath);

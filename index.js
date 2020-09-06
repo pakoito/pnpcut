@@ -1,7 +1,8 @@
 const jimp = require("jimp");
 const sizeOf = require("util").promisify(require("image-size"));
-const fs = require("fs");
+const readDir = require("util").promisify(require("fs").readdir);
 const rangeParser = require("parse-numeric-range");
+const path = require("path");
 
 const card_w = 750;
 const card_h = 1050;
@@ -100,7 +101,7 @@ async function layoutCards(resizes, outpath) {
             `At ${idx}-${inner}: pos [${i}, ${j}], posPx: [${x}, ${y}], size: [${dimensions.width}, ${dimensions.height}], offset: [${offsetX}, ${offsetY}]`
           );
           const image = await jimp.read(file);
-          const card = new jimp(card_w, card_h, "#ff00ff");
+          const card = new jimp(card_w, card_h, "#000000");
           card.composite(image, offsetX, offsetY);
           return [card, x, y];
         })
@@ -110,11 +111,27 @@ async function layoutCards(resizes, outpath) {
       const line_v = new jimp(1, 30, "#ff00ff");
       const line_h = new jimp(30, 1, "#ff00ff");
       for (offset = 0; offset < 4; offset++) {
-        cards.composite(line_v, layout_offsetX + (card_w * offset), layout_offsetY - 30);
-        cards.composite(line_v, layout_offsetX + (card_w * offset), page_h - layout_offsetY);
+        cards.composite(
+          line_v,
+          layout_offsetX + card_w * offset,
+          layout_offsetY - 30
+        );
+        cards.composite(
+          line_v,
+          layout_offsetX + card_w * offset,
+          page_h - layout_offsetY
+        );
 
-        cards.composite(line_h, layout_offsetX - 30, layout_offsetY + (card_h * offset));
-        cards.composite(line_h, page_w - layout_offsetX, layout_offsetY + (card_h * offset));
+        cards.composite(
+          line_h,
+          layout_offsetX - 30,
+          layout_offsetY + card_h * offset
+        );
+        cards.composite(
+          line_h,
+          page_w - layout_offsetX,
+          layout_offsetY + card_h * offset
+        );
       }
       const outCards = `${outpath}/cards/page${idx}.${cards.getExtension()}`;
       await cards.writeAsync(outCards);
@@ -123,19 +140,40 @@ async function layoutCards(resizes, outpath) {
   );
 }
 
-async function start() {
-  const x = process.argv[2];
-  const y = process.argv[3];
-  const outpath = process.argv[4];
-  const infile = process.argv[5];
-  const skip = new Set(rangeParser(process.argv[6] ?? ""));
+async function withCrop() {
+  const x = process.argv[3];
+  const y = process.argv[4];
+  const skip = new Set(rangeParser(process.argv[5] ?? ""));
+  const outpath = process.argv[6];
+  const infile = process.argv[7];
   console.log(`Cutting ${infile} in ${x}x${y} to ${outpath}`);
   console.log(`Skips: ${[...skip]}`);
   const crops = await cut(infile, outpath, x, y, skip);
+  return [crops, outpath];
+}
+
+async function noCrop() {
+  const outpath = process.argv[2];
+  const infolder = process.argv[3];
+  const route = path.resolve(process.cwd(), infolder);
+  const files = await readDir(route);
+  const filesAbs = files.map((file) => path.resolve(route, file));
+  return [filesAbs, outpath];
+}
+
+async function start() {
+  let crops;
+  let outpath;
+  if (process.argv[2] === "crop") {
+    [crops, outpath] = await withCrop();
+  } else {
+    [crops, outpath] = await noCrop();
+  }
   const resizes = await resize(crops, outpath);
   const cards = await layoutCards(resizes, outpath);
   console.log(Array.from(cards));
 }
 
-// node index.js 10 1 ./out file.ext
+// node index.js crop 10 2 '3-5' ./out file.ext
+// node index.js ./out folder
 start();

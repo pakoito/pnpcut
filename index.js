@@ -124,10 +124,10 @@ async function layoutCards(resizes, outpath) {
 }
 
 async function start() {
-  const infile = process.argv[2];
-  const x = process.argv[3];
-  const y = process.argv[4];
-  const outpath = process.argv[5];
+  const x = process.argv[2];
+  const y = process.argv[3];
+  const outpath = process.argv[4];
+  const infile = process.argv[5];
   const skip = new Set(rangeParser(process.argv[6] ?? ""));
   console.log(`Cutting ${infile} in ${x}x${y} to ${outpath}`);
   console.log(`Skips: ${[...skip]}`);
@@ -137,4 +137,5 @@ async function start() {
   console.log(Array.from(cards));
 }
 
+// node index.js 10 1 ./out file.ext
 start();

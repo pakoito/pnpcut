@@ -2,7 +2,7 @@
 
 # PnPCut
 
-Do you have a file or folder containing a buncha cards, and you'd like them nicely lined up in a 3x3 grid on an A4 with cutting guides? So did I!
+Do you have a file or folder containing a buncha cards, and you'd like them nicely lined up as standard cards on a 3x3 grid on an A4 with safety margins and cutting guides? So did I!
 
 This script is some crap I wrote on a lazy Saturday. Don't judge.
 

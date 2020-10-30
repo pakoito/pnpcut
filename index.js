@@ -4,11 +4,21 @@ const readDir = require("util").promisify(require("fs").readdir);
 const rangeParser = require("parse-numeric-range");
 const path = require("path");
 
+// Configurable
 const margin_color = '#ffffff';
+const cutting_color = '#ff00ff';
+const card_margin = 2;
+
+function log(msg) {
+  if (false) {
+    console.log(msg);
+  }
+}
+
+// Constants
 const card_w = 750;
 const card_h = 1050;
 const card_ratio = card_h / card_w;
-const card_margin = 2;
 const card_w_b = card_w + (2 * card_margin);
 const card_h_b = card_h + (2 * card_margin);
 const page_w = 2480;
@@ -17,12 +27,6 @@ const layout_w = card_w_b * 3;
 const layout_h = card_h_b * 3;
 const layout_offsetX = (page_w - layout_w) / 2;
 const layout_offsetY = (page_h - layout_h) / 2;
-
-function log(msg) {
-  if (false) {
-    console.log(msg);
-  }
-}
 
 async function cut(infile, outpath, x, y, t, l, skip) {
   const fileName = infile.split("/").pop().split(".")[0];
@@ -117,8 +121,8 @@ async function layoutCards(resizes, outpath) {
       );
       const cards = new jimp(page_w, page_h, "#ffffff");
       compositions.forEach(([image, x, y]) => cards.composite(image, x, y));
-      const line_v = new jimp(1, 30, "#ff00ff");
-      const line_h = new jimp(30, 1, "#ff00ff");
+      const line_v = new jimp(1, 30, cutting_color);
+      const line_h = new jimp(30, 1, cutting_color);
       for (offset = 0; offset < 4; offset++) {
         cards.composite(
           line_v,

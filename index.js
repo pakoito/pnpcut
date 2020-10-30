@@ -4,10 +4,11 @@ const readDir = require("util").promisify(require("fs").readdir);
 const rangeParser = require("parse-numeric-range");
 const path = require("path");
 
+const margin_color = '#ffffff';
 const card_w = 750;
 const card_h = 1050;
 const card_ratio = card_h / card_w;
-const card_margin = 5;
+const card_margin = 2;
 const card_w_b = card_w + (2 * card_margin);
 const card_h_b = card_h + (2 * card_margin);
 const page_w = 2480;
@@ -17,26 +18,32 @@ const layout_h = card_h_b * 3;
 const layout_offsetX = (page_w - layout_w) / 2;
 const layout_offsetY = (page_h - layout_h) / 2;
 
+function log(msg) {
+  if (false) {
+    console.log(msg);
+  }
+}
+
 async function cut(infile, outpath, x, y, t, l, skip) {
   const fileName = infile.split("/").pop().split(".")[0];
   const dimensions = await sizeOf(infile);
-  console.log(`Size real: ${dimensions.width}, ${dimensions.height}`);
+  log(`Size real: ${dimensions.width}, ${dimensions.height}`);
   const width = Math.floor(dimensions.width - (2 * l));
   const height = Math.floor(dimensions.height - (2 * t));
-  console.log(`Size crop: ${width}, ${height}`);
+  log(`Size crop: ${width}, ${height}`);
   const eachX = Math.floor(width / x);
   const eachY = Math.floor(height / y);
   const positions = Array.from(Array(x * y).keys());
   const crops = await Promise.all(
     positions.map(async (idx) => {
       if (skip.has(idx)) {
-        console.log(`Skipped ${idx}`);
+        log(`Skipped ${idx}`);
         return [];
       }
       const j = Math.floor(idx / x);
       const i = idx - (x * j);
       const cropName = `${fileName}-r${j + 1}-c${i + 1}`;
-      console.log(`Crop ${cropName} at ${idx} from ${eachX * i + l}, ${eachY * j + t}`);
+      log(`Crop ${cropName} at ${idx} from ${eachX * i + l}, ${eachY * j + t}`);
       const image = await jimp.read(infile);
       try {
         const crop = image.crop((eachX * i) + l, (eachY * j) + t, eachX, eachY);
@@ -63,7 +70,7 @@ async function resize(crops, outpath) {
         file_ratio > card_ratio
           ? [card_h / file_ratio, card_h]
           : [card_w, card_w * file_ratio];
-      console.log(`Resize ${file} to [${w}, ${h}]`);
+      log(`Resize ${file} to [${w}, ${h}]`);
       const resize = image.resize(w, h);
       const outFile = `${outpath}/resize/${file}`;
       await resize.writeAsync(outFile);
@@ -89,10 +96,9 @@ async function layoutCards(resizes, outpath) {
   const chunked = chunk(resizes, 9);
   return await Promise.all(
     chunked.map(async (chunk, idx) => {
-      console.log(`Layout ${idx}: ${chunk.length}`);
+      log(`Layout ${idx}: ${chunk.length}`);
       const compositions = await Promise.all(
         chunk.map(async (file, inner) => {
-          // console.log(`At ${idx}-${inner}: ${file}`);
           const j = Math.floor(inner / 3);
           const i = inner - 3 * j;
           const x = layout_offsetX + card_w_b * i;
@@ -100,11 +106,11 @@ async function layoutCards(resizes, outpath) {
           const dimensions = await sizeOf(file);
           const offsetX = (card_w_b - dimensions.width) / 2;
           const offsetY = (card_h_b - dimensions.height) / 2;
-          console.log(
+          log(
             `At ${idx}-${inner}: pos [${i}, ${j}], posPx: [${x}, ${y}], size: [${dimensions.width}, ${dimensions.height}], offset: [${offsetX}, ${offsetY}]`
           );
           const image = await jimp.read(file);
-          const card = new jimp(card_w_b, card_h_b, "#000000");
+          const card = new jimp(card_w_b, card_h_b, margin_color);
           card.composite(image, offsetX, offsetY);
           return [card, x, y];
         })
@@ -173,9 +179,11 @@ async function start() {
     await withCrop();
   } else if (process.argv[2] === "join") {
     [crops, outpath] = await withFolder();
+    console.log("Resizing cards");
     const resizes = await resize(crops, outpath);
+    console.log("Laying out pages");
     const cards = await layoutCards(resizes, outpath);
-    console.log(Array.from(cards));
+    console.log(`Pages:\n${Array.from(cards)}`);
   } else {
     console.log("Crop or join, decide");
   }

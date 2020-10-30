@@ -6,11 +6,14 @@ const path = require("path");
 
 const card_w = 750;
 const card_h = 1050;
-const card_ratio = 1050 / 750;
+const card_ratio = card_h / card_w;
+const card_margin = 5;
+const card_w_b = card_w + (2 * card_margin);
+const card_h_b = card_h + (2 * card_margin);
 const page_w = 2480;
 const page_h = 3508;
-const layout_w = card_w * 3;
-const layout_h = card_h * 3;
+const layout_w = card_w_b * 3;
+const layout_h = card_h_b * 3;
 const layout_offsetX = (page_w - layout_w) / 2;
 const layout_offsetY = (page_h - layout_h) / 2;
 
@@ -92,16 +95,16 @@ async function layoutCards(resizes, outpath) {
           // console.log(`At ${idx}-${inner}: ${file}`);
           const j = Math.floor(inner / 3);
           const i = inner - 3 * j;
-          const x = layout_offsetX + card_w * i;
-          const y = layout_offsetY + card_h * j;
+          const x = layout_offsetX + card_w_b * i;
+          const y = layout_offsetY + card_h_b * j;
           const dimensions = await sizeOf(file);
-          const offsetX = (card_w - dimensions.width) / 2;
-          const offsetY = (card_h - dimensions.height) / 2;
+          const offsetX = (card_w_b - dimensions.width) / 2;
+          const offsetY = (card_h_b - dimensions.height) / 2;
           console.log(
             `At ${idx}-${inner}: pos [${i}, ${j}], posPx: [${x}, ${y}], size: [${dimensions.width}, ${dimensions.height}], offset: [${offsetX}, ${offsetY}]`
           );
           const image = await jimp.read(file);
-          const card = new jimp(card_w, card_h, "#000000");
+          const card = new jimp(card_w_b, card_h_b, "#000000");
           card.composite(image, offsetX, offsetY);
           return [card, x, y];
         })
@@ -113,24 +116,24 @@ async function layoutCards(resizes, outpath) {
       for (offset = 0; offset < 4; offset++) {
         cards.composite(
           line_v,
-          layout_offsetX + card_w * offset,
+          layout_offsetX + card_w_b * offset,
           layout_offsetY - 30
         );
         cards.composite(
           line_v,
-          layout_offsetX + card_w * offset,
+          layout_offsetX + card_w_b * offset,
           page_h - layout_offsetY
         );
 
         cards.composite(
           line_h,
           layout_offsetX - 30,
-          layout_offsetY + card_h * offset
+          layout_offsetY + card_h_b * offset
         );
         cards.composite(
           line_h,
           page_w - layout_offsetX,
-          layout_offsetY + card_h * offset
+          layout_offsetY + card_h_b * offset
         );
       }
       const outCards = `${outpath}/cards/page${idx}.${cards.getExtension()}`;

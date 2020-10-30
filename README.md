@@ -11,15 +11,15 @@ This script is some crap I wrote on a lazy Saturday. Don't judge.
 To crop a file
 
 ```
-node index.js crop 10 2 '3-5' ./out file
+node index.js crop 10 2 0 0 '3-5' ./out file
 ```
 
-Where `crop` is followed by number of columns, number of rows, a [range string](https://github.com/euank/node-parse-numeric-range) of spaces to ignore (i.e. gaps at the end of the file), the folder where the pages are going to be, and the file to crop.
+Where `crop` is followed by number of columns, number of rows, margin from the top and bottom to skip, a [range string](https://github.com/euank/node-parse-numeric-range) of spaces to ignore (i.e. gaps at the end of the file), the folder where the pages are going to be output, and the file to crop.
 
-To use the files on a folder
+To join the files on a folder
 
 ```
-node index.js ./out folder
+node index.js join ./out folder
 ```
 
 Where the first parameter is the folder where the pages are going to be, and the folder where to find the cards.

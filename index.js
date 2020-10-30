@@ -14,12 +14,15 @@ const layout_h = card_h * 3;
 const layout_offsetX = (page_w - layout_w) / 2;
 const layout_offsetY = (page_h - layout_h) / 2;
 
-async function cut(infile, outpath, x, y, skip) {
+async function cut(infile, outpath, x, y, t, l, skip) {
   const fileName = infile.split("/").pop().split(".")[0];
   const dimensions = await sizeOf(infile);
-  console.log(`Size: ${dimensions.width}, ${dimensions.height}`);
-  const eachX = Math.floor(dimensions.width / x);
-  const eachY = Math.floor(dimensions.height / y);
+  console.log(`Size real: ${dimensions.width}, ${dimensions.height}`);
+  const width = Math.floor(dimensions.width - (2 * l));
+  const height = Math.floor(dimensions.height - (2 * t));
+  console.log(`Size crop: ${width}, ${height}`);
+  const eachX = Math.floor(width / x);
+  const eachY = Math.floor(height / y);
   const positions = Array.from(Array(x * y).keys());
   const crops = await Promise.all(
     positions.map(async (idx) => {
@@ -28,12 +31,13 @@ async function cut(infile, outpath, x, y, skip) {
         return [];
       }
       const j = Math.floor(idx / x);
-      const i = idx - y * j;
-      console.log(`Crop ${idx} from ${eachX * i}, ${eachY * j}`);
+      const i = idx - (x * j);
+      const cropName = `${fileName}-r${j + 1}-c${i + 1}`;
+      console.log(`Crop ${cropName} at ${idx} from ${eachX * i + l}, ${eachY * j + t}`);
       const image = await jimp.read(infile);
       try {
-        const crop = image.crop(eachX * i, eachY * j, eachX, eachY);
-        const outFile = `${outpath}/raw/${fileName}-${i}-${j}.${image.getExtension()}`;
+        const crop = image.crop((eachX * i) + l, (eachY * j) + t, eachX, eachY);
+        const outFile = `${outpath}/raw/${cropName}.${image.getExtension()}`;
         await crop.writeAsync(outFile);
         return [outFile];
       } catch (err) {
@@ -46,7 +50,6 @@ async function cut(infile, outpath, x, y, skip) {
 }
 
 async function resize(crops, outpath) {
-  const resizes = [];
   return Promise.all(
     crops.map(async (infile) => {
       const image = await jimp.read(infile);
@@ -138,23 +141,25 @@ async function layoutCards(resizes, outpath) {
 }
 
 async function withCrop() {
-  const x = process.argv[3];
-  const y = process.argv[4];
-  const skip = new Set(rangeParser(process.argv[5] ?? ""));
-  const outpath = process.argv[6];
-  const infile = process.argv[7];
-  console.log(`Cutting ${infile} in ${x}x${y} to ${outpath}`);
+  const x = parseInt(process.argv[3]);
+  const y = parseInt(process.argv[4]);
+  const top = parseInt(process.argv[5]);
+  const left = parseInt(process.argv[6]);
+  const skip = new Set(rangeParser(process.argv[7]));
+  const outpath = process.argv[8];
+  const infile = process.argv[9];
+  console.log(`Cutting ${infile} in ${x}x${y} with margins [${top}, ${left}] to ${outpath}`);
   console.log(`Skips: ${[...skip]}`);
-  const crops = await cut(infile, outpath, x, y, skip);
+  const crops = await cut(infile, outpath, x, y, top, left, skip);
   return [crops, outpath];
 }
 
 async function withFolder() {
-  const outpath = process.argv[2];
-  const infolder = process.argv[3];
+  const outpath = process.argv[3];
+  const infolder = process.argv[4];
   const route = path.resolve(process.cwd(), infolder);
   const files = await readDir(route);
-  const filesAbs = files.map((file) => path.resolve(route, file));
+  const filesAbs = files.map((file) => path.resolve(route, file)).filter((file) => file.indexOf('DS_Store') === -1);
   return [filesAbs, outpath];
 }
 
@@ -162,15 +167,17 @@ async function start() {
   let crops;
   let outpath;
   if (process.argv[2] === "crop") {
-    [crops, outpath] = await withCrop();
-  } else {
+    await withCrop();
+  } else if (process.argv[2] === "join") {
     [crops, outpath] = await withFolder();
+    const resizes = await resize(crops, outpath);
+    const cards = await layoutCards(resizes, outpath);
+    console.log(Array.from(cards));
+  } else {
+    console.log("Crop or join, decide");
   }
-  const resizes = await resize(crops, outpath);
-  const cards = await layoutCards(resizes, outpath);
-  console.log(Array.from(cards));
 }
 
-// node index.js crop 10 2 '3-5' ./out file.ext
-// node index.js ./out folder
+// node index.js crop 10 2 0 0 '3-5' ./out file.ext
+// node index.js join ./out folder
 start();

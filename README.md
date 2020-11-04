@@ -25,3 +25,7 @@ node index.js join ./out folder
 Where the first parameter is the folder where the pages are going to be, and the folder where to find the cards.
 
 Some values such as the margin color and size can be configured in `index.js`
+
+## Example
+
+![](https://i.imgur.com/cGii4rn.png)

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const jimp = require("jimp");
 const sizeOf = require("util").promisify(require("image-size"));
 const readDir = require("util").promisify(require("fs").readdir);
@@ -176,6 +178,39 @@ async function withFolder() {
   return [filesAbs, outpath];
 }
 
+async function layoutTokens(tokens, outpath) {
+  tokens.sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+  );
+  const layout_offsetX = 13;
+  const layout_offsetY = 13;
+  const card_w_b = 145;
+  const card_h_b = 145;
+  const compositions = await Promise.all(
+    tokens.map(async (file, inner) => {
+      const j = Math.floor(inner / 16);
+      const i = inner - 16 * j;
+      const x = layout_offsetX + card_w_b * i;
+      const y = layout_offsetY + card_h_b * j;
+      const dimensions = await sizeOf(file);
+      const offsetX = (card_w_b - dimensions.width) / 2;
+      const offsetY = (card_h_b - dimensions.height) / 2;
+      log(
+        `At ${inner}: pos [${i}, ${j}], posPx: [${x}, ${y}], size: [${dimensions.width}, ${dimensions.height}], offset: [${offsetX}, ${offsetY}]`
+      );
+      const image = await jimp.read(file);
+      const card = new jimp(card_w_b, card_h_b, margin_color);
+      card.composite(image, offsetX, offsetY);
+      return [card, x, y];
+    })
+  );
+  const cards = new jimp(page_w, page_h, "#ffffff");
+  compositions.forEach(([image, x, y]) => cards.composite(image, x, y));
+  const outCards = `${outpath}/cards/page0.${cards.getExtension()}`;
+  await cards.writeAsync(outCards);
+  return outCards;
+}
+
 async function start() {
   let crops;
   let outpath;
@@ -188,6 +223,10 @@ async function start() {
     console.log("Laying out pages");
     const cards = await layoutCards(resizes, outpath);
     console.log(`Pages:\n${Array.from(cards)}`);
+    // } else if (process.argv[2] === "tokens") {
+    //   [crops, outpath] = await withFolder();
+    //   console.log("Laying out tokens");
+    //   const cards = await layoutTokens(crops, outpath);
   } else {
     console.log("Crop or join, decide");
   }
